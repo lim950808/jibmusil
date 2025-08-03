@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jibmusil - News Analytics Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .news-feed {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .news-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .news-item:last-child {
+            border-bottom: none;
+        }
+        
+        .news-title {
+            font-weight: 500;
+            color: #2c3e50;
+            flex: 1;
+        }
+        
+        .news-score {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-left: 15px;
+        }
+        
+        .sentiment-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .sentiment-positive { background-color: #27ae60; }
+        .sentiment-negative { background-color: #e74c3c; }
+        .sentiment-neutral { background-color: #95a5a6; }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+        
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> Jibmusil Analytics</h1>
+            <p>실시간 뉴스 분석 및 트렌드 대시보드</p>
+        </div>
+        
+        <div id="stats-container" class="stats-grid">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i> 데이터를 불러오는 중...
+            </div>
+        </div>
+        
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">📊 카테고리별 뉴스 분포</div>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">😊 감정 분석 결과</div>
+                <div class="chart-container">
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">📈 시간별 뉴스 트렌드</div>
+                <div class="chart-container">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">🔥 사용자 참여도</div>
+                <div class="chart-container">
+                    <canvas id="engagementChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="news-feed">
+            <div class="chart-title">🏆 인기 뉴스 TOP 5</div>
+            <div id="top-news-container">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> 인기 뉴스를 불러오는 중...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="refresh-btn" onclick="loadDashboard()">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+    
+    <script>
+        let charts = {};
+        
+        async function loadDashboard() {
+            try {
+                await Promise.all([
+                    loadStats(),
+                    loadCharts(),
+                    loadTopNews()
+                ]);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showError('대시보드 데이터를 불러오는데 실패했습니다.');
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await axios.get('/api/analytics/dashboard');
+                const data = response.data;
+                
+                const statsContainer = document.getElementById('stats-container');
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        <div class="stat-number">${data.overview.totalUsers.toLocaleString()}</div>
+                        <div class="stat-label">총 사용자</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-newspaper"></i></div>
+                        <div class="stat-number">${data.overview.totalArticles.toLocaleString()}</div>
+                        <div class="stat-label">총 뉴스 기사</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-mouse-pointer"></i></div>
+                        <div class="stat-number">${data.overview.totalInteractions.toLocaleString()}</div>
+                        <div class="stat-label">총 상호작용</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                        <div class="stat-number">${data.overview.dailyInteractions.toLocaleString()}</div>
+                        <div class="stat-label">오늘 상호작용</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        async function loadCharts() {
+            try {
+                const [dashboardResponse, trendsResponse, engagementResponse, sentimentResponse] = await Promise.all([
+                    axios.get('/api/analytics/dashboard'),
+                    axios.get('/api/analytics/trends'),
+                    axios.get('/api/analytics/user-engagement'),
+                    axios.get('/api/analytics/sentiment-analysis')
+                ]);
+                
+                createCategoryChart(dashboardResponse.data.categoryStats);
+                createSentimentChart(sentimentResponse.data.distribution);
+                createTrendsChart(trendsResponse.data.hourlyTrends);
+                createEngagementChart(engagementResponse.data.interactionTypes);
+                
+            } catch (error) {
+                console.error('Error loading charts:', error);
+            }
+        }
+        
+        async function loadTopNews() {
+            try {
+                const response = await axios.get('/api/analytics/dashboard');
+                const topNews = response.data.topNews;
+                
+                const container = document.getElementById('top-news-container');
+                container.innerHTML = topNews.map((news, index) => `
+                    <div class="news-item">
+                        <div class="news-title">
+                            <span class="sentiment-indicator sentiment-${getSentimentClass(news.sentimentScore)}"></span>
+                            ${index + 1}. ${news.title}
+                        </div>
+                        <div class="news-score">${Math.round(news.popularityScore)}</div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading top news:', error);
+            }
+        }
+        
+        function createCategoryChart(categoryData) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            if (charts.category) {
+                charts.category.destroy();
+            }
+            
+            charts.category = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categoryData),
+                    datasets: [{
+                        data: Object.values(categoryData),
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#f093fb', '#f5576c',
+                            '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createSentimentChart(sentimentData) {
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            
+            if (charts.sentiment) {
+                charts.sentiment.destroy();
+            }
+            
+            charts.sentiment = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['긍정적', '중립적', '부정적'],
+                    datasets: [{
+                        label: '감정 분포 (%)',
+                        data: [sentimentData.positive, sentimentData.neutral, sentimentData.negative],
+                        backgroundColor: ['#27ae60', '#95a5a6', '#e74c3c']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createTrendsChart(trendsData) {
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+            
+            if (charts.trends) {
+                charts.trends.destroy();
+            }
+            
+            charts.trends = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: trendsData.map(item => `${item.hour}:00`),
+                    datasets: [{
+                        label: '뉴스 발행 수',
+                        data: trendsData.map(item => item.count),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createEngagementChart(engagementData) {
+            const ctx = document.getElementById('engagementChart').getContext('2d');
+            
+            if (charts.engagement) {
+                charts.engagement.destroy();
+            }
+            
+            charts.engagement = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['조회', '좋아요', '공유', '저장', '클릭'],
+                    datasets: [{
+                        label: '사용자 참여도',
+                        data: [
+                            engagementData.views,
+                            engagementData.likes,
+                            engagementData.shares,
+                            engagementData.saves,
+                            engagementData.clicks
+                        ],
+                        borderColor: '#764ba2',
+                        backgroundColor: 'rgba(118, 75, 162, 0.2)',
+                        pointBackgroundColor: '#764ba2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        function getSentimentClass(score) {
+            if (score > 0.1) return 'positive';
+            if (score < -0.1) return 'negative';
+            return 'neutral';
+        }
+        
+        function showError(message) {
+            const container = document.querySelector('.container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+            container.insertBefore(errorDiv, container.firstChild);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+        
+        // 페이지 로드 시 대시보드 데이터 로드
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+        
+        // 5분마다 자동 새로고침
+        setInterval(loadDashboard, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
