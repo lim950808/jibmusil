@@ -2,12 +2,9 @@ package com.example.jibmusil.analytics;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.ChatResponse;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.chat.prompt.PromptTemplate;
+// Spring AI imports - 임시로 주석 처리
+// import org.springframework.ai.chat.ChatClient;
+// import org.springframework.ai.chat.ChatResponse;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -21,10 +18,9 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SentimentAnalysisService {
 
-    private final ChatClient chatClient;
+    // private final ChatClient chatClient; // 임시 주석
 
     private static final String SENTIMENT_ANALYSIS_PROMPT = """
             Analyze the sentiment of the following text and return a score between -1.0 and 1.0:
@@ -51,17 +47,12 @@ public class SentimentAnalysisService {
             try {
                 log.debug("Analyzing sentiment for text: {}", text.substring(0, Math.min(100, text.length())));
                 
-                PromptTemplate promptTemplate = new PromptTemplate(SENTIMENT_ANALYSIS_PROMPT);
-                Prompt prompt = promptTemplate.create(Map.of("text", text));
-                
-                ChatResponse response = chatClient.call(prompt);
-                String result = response.getResult().getOutput().getContent().trim();
-                
-                return parseSentimentScore(result, text);
+                // AI 분석 대신 키워드 기반 분석 사용
+                return keywordBasedSentimentAnalysis(text);
                 
             } catch (Exception e) {
-                log.warn("Failed to analyze sentiment using AI, falling back to keyword-based analysis", e);
-                return keywordBasedSentimentAnalysis(text);
+                log.warn("Failed to analyze sentiment, using neutral score", e);
+                return BigDecimal.ZERO;
             }
         });
     }

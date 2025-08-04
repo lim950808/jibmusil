@@ -1,12 +1,14 @@
 spring:
   application:
     name: jibmusil
+  main:
+    allow-bean-definition-overriding: true
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
     
   # Database Configuration
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/jibmusil_db?useSSL=false&serverTimezone=UTC}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/jibmusil_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -33,7 +35,7 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 3000ms
-      jedis:
+      lettuce:
         pool:
           max-active: 50
           max-idle: 20
@@ -42,7 +44,7 @@ spring:
           
   # Elasticsearch Configuration
   elasticsearch:
-    uris: ${ELASTICSEARCH_HOST:localhost}:${ELASTICSEARCH_PORT:9200}
+    uris: http://${ELASTICSEARCH_HOST:localhost}:${ELASTICSEARCH_PORT:9200}
     connection-timeout: 1s
     socket-timeout: 30s
     
@@ -79,16 +81,17 @@ spring:
       
   # Batch Configuration
   batch:
-    initialize-schema: always
+    jdbc:
+      initialize-schema: always
 
   # AI Configuration
   ai:
     openai:
-          api-key: ${OPENAI_API_KEY:your-openai-api-key}
-          chat:
-            options:
-              model: gpt-4
-              temperature: 0.7
+      api-key: ${OPENAI_API_KEY:your-openai-api-key}
+      chat:
+        options:
+          model: gpt-4
+          temperature: 0.7
 
 # Management & Monitoring
 management:
@@ -99,14 +102,16 @@ management:
   endpoint:
     health:
       show-details: always
-    prometheus:
-      enabled: true
   metrics:
     export:
       prometheus:
         enabled: true
     tags:
       application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
       
 # Logging Configuration
 logging:
@@ -165,7 +170,7 @@ spring:
       host: redis
       port: 6379
   elasticsearch:
-    uris: elasticsearch:9200
+    uris: http://elasticsearch:9200
   kafka:
     bootstrap-servers: kafka:9092
     

@@ -11,11 +11,11 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+// import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+// import org.springframework.data.elasticsearch.core.SearchHit;
+// import org.springframework.data.elasticsearch.core.SearchHits;
+// import org.springframework.data.elasticsearch.core.query.Query;
+// import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +33,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.index.query.QueryBuilders.*;
 
 @Slf4j
 @Service
@@ -41,13 +40,15 @@ import static org.elasticsearch.index.query.QueryBuilders.*;
 @Transactional(readOnly = true)
 public class NewsService {
 
-    private final WebClient webClient;
+    private final WebClient webClient = WebClient.builder()
+            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+            .build();
     private final NewsRepository newsRepository;
-    private final NewsElasticsearchRepository newsElasticsearchRepository;
+    // private final NewsElasticsearchRepository newsElasticsearchRepository;
     private final NewsCategoryRepository categoryRepository;
     private final SentimentAnalysisService sentimentAnalysisService;
     private final NewsKafkaProducer kafkaProducer;
-    private final ElasticsearchOperations elasticsearchOperations;
+    // private final ElasticsearchOperations elasticsearchOperations;
     private final ObjectMapper objectMapper;
 
     @Value("${newsapi.base-url}")
@@ -58,12 +59,6 @@ public class NewsService {
 
     @Value("${jibmusil.news.batch-size:100}")
     private int batchSize;
-
-    public NewsService() {
-        this.webClient = WebClient.builder()
-                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
-                .build();
-    }
 
     @Cacheable(value = "news", key = "#query + ':' + #category + ':' + #language")
     public Mono<NewsApiResponse> fetchNewsFromApi(String query, String category, String language) {
@@ -147,7 +142,7 @@ public class NewsService {
     public void saveArticlesBatch(List<NewsArticle> articles) {
         try {
             List<NewsArticle> savedArticles = newsRepository.saveAll(articles);
-            newsElasticsearchRepository.saveAll(savedArticles);
+            // newsElasticsearchRepository.saveAll(savedArticles);
             log.info("Saved batch of {} articles to database and Elasticsearch", articles.size());
         } catch (Exception e) {
             log.error("Error saving articles batch", e);
@@ -160,19 +155,13 @@ public class NewsService {
             return findNewsByCategory(category, pageable);
         }
 
-        NativeSearchQuery searchQuery = new NativeSearchQueryBuilder()
-                .withQuery(boolQuery()
-                        .must(multiMatchQuery(query, "title", "description", "content"))
-                        .filter(category != null ? termQuery("categoryId", getCategoryId(category)) : matchAllQuery()))
-                .withPageable(pageable)
-                .build();
-
-        SearchHits<NewsArticle> searchHits = elasticsearchOperations.search(searchQuery, NewsArticle.class);
-        List<NewsArticle> articles = searchHits.getSearchHits().stream()
-                .map(SearchHit::getContent)
-                .collect(Collectors.toList());
-
-        return new PageImpl<>(articles, pageable, searchHits.getTotalHits());
+        // JPA Repository를 사용한 검색 (Elasticsearch 대신)
+        if (category != null) {
+            Long categoryId = getCategoryId(category);
+            return newsRepository.findByCategoryIdOrderByPublishedAtDesc(categoryId, pageable);
+        } else {
+            return newsRepository.findByTitleContainingOrDescriptionContaining(query, query, pageable);
+        }
     }
 
     public Page<NewsArticle> findNewsByCategory(String category, Pageable pageable) {
@@ -335,5 +324,10 @@ public class NewsService {
         return categoryRepository.findByName(categoryName)
                 .map(NewsCategory::getId)
                 .orElse(null);
+    }
+    
+    // UserService에서 호출하는 메소드 추가
+    public Mono<NewsApiResponse> fetchNews(String query, String category) {
+        return fetchNewsFromApi(query, category, "en");
     }
 }

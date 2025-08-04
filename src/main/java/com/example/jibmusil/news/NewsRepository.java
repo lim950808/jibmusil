@@ -20,6 +20,8 @@ public interface NewsRepository extends JpaRepository<NewsArticle, Long> {
     
     Page<NewsArticle> findByCategoryIdOrderByPublishedAtDesc(Long categoryId, Pageable pageable);
     
+    Page<NewsArticle> findByTitleContainingOrDescriptionContaining(String title, String description, Pageable pageable);
+    
     @Query("SELECT n FROM NewsArticle n WHERE n.categoryId = :categoryId ORDER BY n.popularityScore DESC, n.publishedAt DESC")
     List<NewsArticle> findByCategoryIdOrderByPopularityAndDate(@Param("categoryId") Long categoryId, Pageable pageable);
     

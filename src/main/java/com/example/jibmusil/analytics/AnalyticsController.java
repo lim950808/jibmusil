@@ -52,11 +52,11 @@ public class AnalyticsController {
             // 인기 뉴스
             List<Object> topNews = newsRepository.findTrendingNews(5)
                     .stream()
-                    .map(article -> Map.of(
-                            "id", article.getId(),
-                            "title", article.getTitle(),
-                            "popularityScore", article.getPopularityScore() != null ? article.getPopularityScore() : BigDecimal.ZERO,
-                            "sentimentScore", article.getSentimentScore() != null ? article.getSentimentScore() : BigDecimal.ZERO
+                    .map(article -> (Object) Map.of(
+                            "id", (Object) article.getId(),
+                            "title", (Object) article.getTitle(),
+                            "popularityScore", (Object) (article.getPopularityScore() != null ? article.getPopularityScore() : BigDecimal.ZERO),
+                            "sentimentScore", (Object) (article.getSentimentScore() != null ? article.getSentimentScore() : BigDecimal.ZERO)
                     ))
                     .toList();
             

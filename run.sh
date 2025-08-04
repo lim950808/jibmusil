@@ -87,7 +87,7 @@ start_application() {
     print_step "Spring Boot 애플리케이션 시작 중..."
     
     export SPRING_PROFILES_ACTIVE=local
-    export SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/jibmusil_db?useSSL=false&serverTimezone=UTC
+    export SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/jibmusil_db?useSSL=false&serverTimezone=UTC
     export SPRING_DATASOURCE_USERNAME=root
     export SPRING_DATASOURCE_PASSWORD=password
     export SPRING_DATA_REDIS_HOST=localhost
@@ -134,6 +134,7 @@ print_service_info() {
     echo "  • 로그 확인: docker-compose logs -f jibmusil-app"
     echo "  • 서비스 중지: docker-compose down"
     echo "  • 데이터베이스 접속: docker exec -it jibmusil-mysql mysql -u root -p"
+    echo "  • 로컬 DB 접속: mysql -h localhost -P 3307 -u root -p"
     echo ""
 }
 

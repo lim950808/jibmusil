@@ -24,7 +24,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
@@ -33,16 +32,16 @@ dependencies {
     // Database
     runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'redis.clients:jedis'
     
-    // Elasticsearch
-    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+    // Elasticsearch - 일시적으로 주석 처리
+    // implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
     
     // Kafka
     implementation 'org.springframework.kafka:spring-kafka'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     
     // Security & JWT
+    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
@@ -56,11 +55,23 @@ dependencies {
     // Logging
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
     
-    // Machine Learning & AI
-    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M3'
-    implementation 'org.apache.spark:spark-core_2.12:3.5.0'
-    implementation 'org.apache.spark:spark-sql_2.12:3.5.0'
-    implementation 'org.apache.spark:spark-mllib_2.12:3.5.0'
+    // Machine Learning & AI (일시적으로 주석 처리)
+    // implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M3'
+    implementation('org.apache.spark:spark-core_2.12:3.5.0') {
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        exclude group: 'log4j', module: 'log4j'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j2-impl'
+    }
+    implementation('org.apache.spark:spark-sql_2.12:3.5.0') {
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        exclude group: 'log4j', module: 'log4j'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j2-impl'
+    }
+    implementation('org.apache.spark:spark-mllib_2.12:3.5.0') {
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        exclude group: 'log4j', module: 'log4j'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j2-impl'
+    }
     
     // HTTP Client & JSON Processing
     implementation 'com.fasterxml.jackson.core:jackson-databind'
